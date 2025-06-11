@@ -14,4 +14,8 @@ To run the script, I provide the ip address of the capture the flag machine and 
 
 If I wanted that machine to use the domain saban.thm, I would run the above command with the optional parameter:
 
-`python3 saban.py 10.10.1.1 saban.thm`
+`python3 saban.py 10.10.1.1 -d saban.thm`
+
+or
+
+`python3 saban.py 10.10.1.1 --domain_name saban.thm`
