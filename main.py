@@ -1,9 +1,51 @@
+import argparse
 import os
 
 
-def main():
-  pass
+def step_logging(text):
+  def decorator(func):
+    def wrapper(*args, **kwargs):
+      print(f'{text}...')
+      func(*args, **kwargs)
+      print(f'Done {text[0].lower() + text[1:]}.')
+    return wrapper
+  return decorator
+
+
+@step_logging(text='Checking effective user id of this process')
+def check_effective_user():
+  if os.geteuid() != 0:
+    print('Please run this script with elevated privileges.')
+    exit(-1)
+
+
+@step_logging(text='Checking if IP address needs to be added to hosts file')
+def add_to_host_file(ip_address, domain_name):
+  file_name = '/etc/hosts'
+  with open(file_name, 'r') as fp:
+    lines = [l.strip() for l in fp.readlines()]
+  ipv4_max_length = 15  # 4 octets of 3 character and 3 periods between
+  minimal_space = 3  # I like having at least 3 spaces between the ip address and domain name
+  spacing = minimal_space + (ipv4_max_length - len(ip_address))
+  expected_line = f'{ip_address}{" " * spacing}{domain_name}'
+  if expected_line in lines:
+    print(f'"{expected_line}" is already in {file_name} file')
+    return
+  print(f'Adding "{expected_line}" to {file_name}')
+  with open(file_name, 'a') as fp:
+    fp.write(f'{expected_line}\n')
+
+
+def main(args):
+  print(args.ip_address)
+  print(args.domain_name)
+  check_effective_user()
+  add_to_host_file(args.ip_address, args.domain_name)
 
 
 if __name__ == '__main__':
-  main()
+  parser = argparse.ArgumentParser(description="A script to automate some repetitive cyber security tasks")
+  parser.add_argument("ip_address", help="The ip address of the capture the flag machine")
+  parser.add_argument("-d", "--domain_name", help="The domain name for the capture the flag machine", default="target.thm")
+  args = parser.parse_args()
+  main(args)
