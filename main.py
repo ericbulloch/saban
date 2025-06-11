@@ -1,5 +1,6 @@
 import argparse
 import os
+from subprocess import call
 
 
 def step_logging(text):
@@ -36,11 +37,16 @@ def add_to_host_file(ip_address, domain_name):
     fp.write(f'{expected_line}\n')
 
 
+@step_logging(text='Running inital nmap scan')
+def initial_nmap_scan(host):
+  command = f'nmap -p- -T5 -Pn -v {host} -oX nmap.xml'
+  call(command, shell=True)
+
+
 def main(args):
-  print(args.ip_address)
-  print(args.domain_name)
   check_effective_user()
   add_to_host_file(args.ip_address, args.domain_name)
+  initial_nmap_scan(args.domain_name)
 
 
 if __name__ == '__main__':
