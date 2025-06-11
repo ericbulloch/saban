@@ -1,6 +1,7 @@
 import argparse
 import os
 from subprocess import call
+from xml.etree import ElementTree
 
 
 def step_logging(text):
@@ -39,14 +40,23 @@ def add_to_host_file(ip_address, domain_name):
 
 @step_logging(text='Running inital nmap scan')
 def initial_nmap_scan(host):
-  command = f'nmap -p- -T5 -Pn -v {host} -oX nmap.xml'
+  command = f'nmap -p- -T5 -Pn -v {host} -oX initial_nmap.xml'
   call(command, shell=True)
+
+
+@step_logging(text='Running second nmap scan')
+def second_nmap_scan(host):
+  tree = ElementTree.parse('initial_nmap.xml')
+  root = tree.getroot()
+  ports = [p.get('portid') for p in root.find('host').find('ports').findall('port')]
+  command = f'nmap -p {",".join(ports)} -A -Pn -v {host} -oX second_nmap.xml'
 
 
 def main(args):
   check_effective_user()
   add_to_host_file(args.ip_address, args.domain_name)
   initial_nmap_scan(args.domain_name)
+  second_nmap_scan(args.domain_name)
 
 
 if __name__ == '__main__':
