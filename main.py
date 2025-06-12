@@ -42,8 +42,9 @@ def add_to_host_file(ip_address, domain_name):
 
 @step_logging(text='Running inital nmap scan')
 def initial_nmap_scan(host):
-    command = f'nmap -p- -T5 -Pn -v {host} -oX initial_nmap.xml'
+    command = f'nmap -p- -T5 -Pn -v {host} -oX initial_nmap.xml -oN initial_nmap.txt'
     call(command, shell=True)
+    print('nmap output available in initial_nmap.txt')
 
 
 @step_logging(text='Running second nmap scan')
@@ -52,10 +53,11 @@ def second_nmap_scan(host):
     tree = ElementTree.parse(initial)
     root = tree.getroot()
     ports = [p.get('portid') for p in root.find('host').find('ports').findall('port')]
-    output = 'second_nmap.xml'
-    command = f'nmap -p {",".join(ports)} -A -Pn -v {host} -oX {output}'
+    output = 'second_nmap'
+    command = f'nmap -p {",".join(ports)} -A -Pn -v {host} -oX {output}.xml -oN {output}.txt'
     call(command, shell=True)
-    tree = ElementTree.parse(output)
+    print(f'nmap output available in {output}.txt')
+    tree = ElementTree.parse(f'{output}.xml')
     root = tree.getroot()
     services = []
     ports = root.find('host').find('ports').findall('port')
