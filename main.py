@@ -1,4 +1,5 @@
 import argparse
+from ftplib import FTP
 import os
 from subprocess import call
 from xml.etree import ElementTree
@@ -71,6 +72,26 @@ def second_nmap_scan(host):
     return services
 
 
+def ftp_handler(host, service):
+    port = service.get('port')
+    print(f'ftp_handler called for port {port}')
+    try:
+        ftp = FTP(host)
+        ftp.login()
+        files = ftp.nlst()
+        ftp.quit()
+        print('Anonymous login successful. Here files on the ftp server:')
+        for file in files:
+            print(file)
+    except Exception:
+        pass
+
+
+def ssh_handler(host, service):
+    port = service.get('port')
+    print(f'ssh_handler called for port {port}')
+
+
 def website_handler(host, service):
     protocol = service.get('service')
     port = service.get('port')
@@ -80,11 +101,6 @@ def website_handler(host, service):
     call(command, shell=True)
     # command = f'ffuf -H "Host: FUZZ.{host}" -H "User-Agent: PENTEST" -w /usr/share/wordlists/SecLists/Discovery/Web-Content/raft-large-directories-lowercase.txt -u {base_url} -fs 100'
     # call(command, shell=True)
-
-
-def ssh_handler(host, service):
-    port = service.get('port')
-    print(f'ssh_handler called for port {port}')
 
 
 def unhandled_service(host, service):
