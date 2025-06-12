@@ -100,9 +100,9 @@ def handle(service):
 
 def main(args):
     check_effective_user()
-    add_to_host_file(args.ip_address, args.domain_name)
-    initial_nmap_scan(args.domain_name)
-    services = second_nmap_scan(args.domain_name)
+    add_to_host_file(args.ip_address, args.host)
+    initial_nmap_scan(args.host)
+    services = second_nmap_scan(args.host)
     for service in services:
         handle(service)
 
@@ -116,6 +116,6 @@ service_mapping = {
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="A script to automate some repetitive cyber security tasks")
     parser.add_argument("ip_address", help="The ip address of the capture the flag machine")
-    parser.add_argument("-d", "--domain_name", help="The domain name for the capture the flag machine", default="target.thm")
+    parser.add_argument("-h", "--host", help="The host name for the capture the flag machine", default="target.thm")
     args = parser.parse_args()
     main(args)
