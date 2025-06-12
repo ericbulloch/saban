@@ -136,6 +136,8 @@ def main(args):
 
 service_mapping = {
     'http': website_handler,
+    'https': website_handler,
+    'ftp': ftp_handler,
     'ssh': ssh_handler,
 }
 
