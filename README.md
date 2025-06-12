@@ -8,14 +8,14 @@ I have noticed a lot of the capture the flag machines that I have worked on have
 
 I run this script from my attack box which is running Kali Linux. When I start up the attack box it does not save files or settings from the previous run. Since it is a sandbox environment, this script runs with the assumption that it has not been ran before.
 
-To run the script, I provide the ip address of the capture the flag machine and an optional domain name. The domain name is defaulted to target.thm. Here is a sample run:
+To run the script, I provide the ip address of the capture the flag machine and an optional host name. The host name is defaulted to target.thm. Here is a sample run:
 
 `python3 saban.py 10.10.1.1`
 
-If I wanted that machine to use the domain saban.thm, I would run the above command with the optional parameter:
+If I wanted that machine to use the host name saban.thm, I would run the above command with the optional parameter:
 
-`python3 saban.py 10.10.1.1 -d saban.thm`
+`python3 saban.py 10.10.1.1 -h saban.thm`
 
 or
 
-`python3 saban.py 10.10.1.1 --domain_name saban.thm`
+`python3 saban.py 10.10.1.1 --host saban.thm`
