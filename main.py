@@ -72,7 +72,7 @@ def second_nmap_scan(host):
 
 
 def website_handler(service):
-    protocol = service.get('name')
+    protocol = service.get('service')
     port = service.get('port')
     print(f'website_handler called for {protocol} on port {port}')
 
