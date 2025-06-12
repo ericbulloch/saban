@@ -71,18 +71,23 @@ def second_nmap_scan(host):
     return services
 
 
-def website_handler(service):
+def website_handler(host, service):
     protocol = service.get('service')
     port = service.get('port')
-    print(f'website_handler called for {protocol} on port {port}')
+    base_url = f'{protocol}://{host}:{port}'
+    print(f'Running directory enumeration on {base_url}')
+    command = f'ffuf -u {base_url}/FUZZ -w /usr/share/wordlists/dirbuster/directory-list-lowercase-2.3-medium.txt -r -e .txt,.zip,.py,.php -D'
+    call(command, shell=True)
+    # command = f'ffuf -H "Host: FUZZ.{host}" -H "User-Agent: PENTEST" -w /usr/share/wordlists/SecLists/Discovery/Web-Content/raft-large-directories-lowercase.txt -u {base_url} -fs 100'
+    # call(command, shell=True)
 
 
-def ssh_handler(service):
+def ssh_handler(host, service):
     port = service.get('port')
     print(f'ssh_handler called for port {port}')
 
 
-def unhandled_service(service):
+def unhandled_service(host, service):
     port = service.get('port')
     name = service.get('service')
     product = service.get('product')
@@ -90,12 +95,18 @@ def unhandled_service(service):
     print(f'Unhandled service ({name}) on port {port} running {product} version {version}')
 
 
-def handle(service):
+def handle(host, service):
+    port = service.get('port')
+    name = service.get('service')
+    product = service.get('product')
+    version = service.get('version')
+    print(f'Handling service ({name}) on port {port} running {product} version {version}')
+    print(f'Possible searchsploit command: searchsploit {product} {version}')
     handler = service_mapping.get(service.get('service'))
     if not handler:
-        unhandled_service(service)
+        unhandled_service(host, service)
     else:
-        handler(service)
+        handler(host, service)
 
 
 def main(args):
@@ -104,7 +115,7 @@ def main(args):
     initial_nmap_scan(args.host)
     services = second_nmap_scan(args.host)
     for service in services:
-        handle(service)
+        handle(args.host, service)
 
 
 service_mapping = {
@@ -116,6 +127,6 @@ service_mapping = {
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="A script to automate some repetitive cyber security tasks")
     parser.add_argument("ip_address", help="The ip address of the capture the flag machine")
-    parser.add_argument("-h", "--host", help="The host name for the capture the flag machine", default="target.thm")
+    parser.add_argument("--host", help="The host name for the capture the flag machine", default="target.thm")
     args = parser.parse_args()
     main(args)
