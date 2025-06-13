@@ -87,6 +87,18 @@ def ftp_handler(host, service):
         pass
 
 
+def pop3_handler(host, service):
+    pass
+
+
+def nfs_handler(host, service):
+    pass
+
+
+def smb_handler(host, service):
+    pass
+
+
 def ssh_handler(host, service):
     port = service.get('port')
     print(f'ssh_handler called for port {port}')
@@ -138,9 +150,12 @@ def main(args):
 
 
 service_mapping = {
+    'ftp': ftp_handler,
     'http': website_handler,
     'https': website_handler,
-    'ftp': ftp_handler,
+    'pop3': pop3_handler,
+    'nfs': nfs_handler,
+    'smb': smb_handler,
     'ssh': ssh_handler,
 }
 
