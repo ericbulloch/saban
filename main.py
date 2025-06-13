@@ -80,7 +80,7 @@ def ftp_handler(host, service):
         ftp.login()
         files = ftp.nlst()
         ftp.quit()
-        print('Anonymous login successful. Here files on the ftp server:')
+        print('Anonymous login successful. Here are the files on the ftp server:')
         for file in files:
             print(file)
     except Exception:
