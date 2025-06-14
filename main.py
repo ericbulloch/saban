@@ -111,11 +111,17 @@ def website_handler(host, service):
     print(f'Running directory enumeration on {base_url}')
     command = f'ffuf -u {base_url}/FUZZ -w /usr/share/wordlists/dirbuster/directory-list-lowercase-2.3-medium.txt -r -e .txt,.zip,.py,.php -D'
     call(command, shell=True)
-    # send single request to the site with a domain that has a low probability of existing
-    # look at the the output and determine what the size of the response is
-    # pass that size as an argument to the next request
-    # command = f'ffuf -H "Host: FUZZ.{host}" -H "User-Agent: PENTEST" -w /usr/share/wordlists/SecLists/Discovery/Web-Content/raft-large-directories-lowercase.txt -u {base_url} -fs 100'
-    # call(command, shell=True)
+    with open('bad_subdomains.txt', 'w') as fp:
+        for subdomain in ['SHOULD_NOT_EXIST_SUBDOMAIN']:
+            fp.write(f'{subdomain}\n')
+    command = ['ffuf', '-H', f"Host: FUZZ.{host}", '-H', "User-Agent: PENTEST", '-w', 'bad_subdomains.txt', '-u', base_url]
+    output = subprocess.check_output(command)
+    regex = r"^.+ Size: (\d+)"
+    match = re.match(regex, output.decode())
+    if match:
+        size = match.groups()[0]
+        command = f'ffuf -H "Host: FUZZ.{host}" -H "User-Agent: PENTEST" -w /usr/share/wordlists/SecLists/Discovery/Web-Content/raft-large-directories-lowercase.txt -u {base_url} -fs {size}'
+        call(command, shell=True)
 
 
 def unhandled_service(host, service):
