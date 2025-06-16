@@ -125,7 +125,7 @@ def ssh_handler(host, service):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     username = 'does_not_exist'
-    password = 'password
+    password = 'password'
     try:
         client.connect(host, port=port, username=username, password=password)
         print(f'Great news! SSH authentication worked with {username}:{password}')
