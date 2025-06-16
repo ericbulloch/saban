@@ -93,19 +93,18 @@ def ftp_handler(host, service):
 
 
 def image_handler(url, destination):
-    try:
-        response = requests.get(url, stream=True)
-        if not response.ok:
-            return
-        with open(destination, 'wb') as file:
-            for chunk in response.iter_content(chunk_size=8192):
-                file.write(chunk)
-        command = f'exiftool {destination}'
-        call(command, shell=True)
-        command = f'binwalk -e {destination}'
-        call(command, shell=True)
-        command = f'steghide info {destination}'
-        call(command, shell=True)
+    response = requests.get(url, stream=True)
+    if not response.ok:
+        return
+    with open(destination, 'wb') as file:
+        for chunk in response.iter_content(chunk_size=8192):
+            file.write(chunk)
+    command = f'exiftool {destination}'
+    call(command, shell=True)
+    command = f'binwalk -e {destination}'
+    call(command, shell=True)
+    command = f'steghide info {destination}'
+    call(command, shell=True)
 
 
 def pop3_handler(host, service):
