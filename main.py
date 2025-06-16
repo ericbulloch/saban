@@ -124,11 +124,15 @@ def ssh_handler(host, service):
     print(f'ssh_handler called for port {port}')
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    username = 'does_not_exist'
+    password = 'password
     try:
-        client.connect(host, port=port, username='does_not_exist', password='password')
-    except Exception as e:
-        print(e)
-        print(type(e))
+        client.connect(host, port=port, username=username, password=password)
+        print(f'Great news! SSH authentication worked with {username}:{password}')
+    except paramiko.AuthenticationException:
+        print(f'SSH password authentication is allowed for {host}')
+    except paramiko.BadAuthenticationType:
+        print(f'{host} requires public-key to remote in')
     client.close()
 
 
