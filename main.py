@@ -6,6 +6,7 @@ import subprocess
 from subprocess import call
 from xml.etree import ElementTree
 
+import paramiko
 import requests
 
 
@@ -122,6 +123,14 @@ def smb_handler(host, service):
 def ssh_handler(host, service):
     port = service.get('port')
     print(f'ssh_handler called for port {port}')
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    try:
+        client.connect(host, port=port, username='does_not_exist', password='password')
+    except Exception as e:
+        print(e)
+        print(type(e))
+    client.close()
 
 
 def website_handler(host, service):
