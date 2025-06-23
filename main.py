@@ -46,13 +46,6 @@ def add_to_host_file(ip_address, domain_name):
         fp.write(f'{expected_line}\n')
 
 
-@step_logging(text='Running inital nmap scan')
-def initial_nmap_scan(host):
-    command = f'nmap -p- -T5 -Pn -v0 {host} -oX initial_nmap.xml -oN initial_nmap.txt'
-    call(command, shell=True)
-    print('nmap output available in initial_nmap.txt')
-
-
 @step_logging(text='Running second nmap scan')
 def second_nmap_scan(host):
     initial = 'initial_nmap.xml'
@@ -181,7 +174,6 @@ def handle(host, service):
 def main(args):
     check_effective_user()
     add_to_host_file(args.ip_address, args.host)
-    initial_nmap_scan(args.host)
     services = second_nmap_scan(args.host)
     for service in services:
         handle(args.host, service)
