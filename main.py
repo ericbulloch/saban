@@ -46,17 +46,12 @@ def add_to_host_file(ip_address, domain_name):
         fp.write(f'{expected_line}\n')
 
 
-@step_logging(text='Running second nmap scan')
-def second_nmap_scan(host):
-    initial = 'initial_nmap.xml'
-    tree = ElementTree.parse(initial)
-    root = tree.getroot()
-    ports = [p.get('portid') for p in root.find('host').find('ports').findall('port')]
-    output = 'second_nmap'
-    command = f'nmap -p {",".join(ports)} -A -Pn -v0 {host} -oX {output}.xml -oN {output}.txt'
+@step_logging(text='Running nmap scan')
+def nmap_scan(host):
+    command = f'nmap -T4 -n -sC -sV -Pn -v0 -p- {host} -oX nmap.xml -oN nmap.txt'
     call(command, shell=True)
-    print(f'nmap output available in {output}.txt')
-    tree = ElementTree.parse(f'{output}.xml')
+    print(f'nmap output available in nmap.txt and nmap.xml')
+    tree = ElementTree.parse(f'nmap.xml')
     root = tree.getroot()
     services = []
     ports = root.find('host').find('ports').findall('port')
@@ -174,7 +169,7 @@ def handle(host, service):
 def main(args):
     check_effective_user()
     add_to_host_file(args.ip_address, args.host)
-    services = second_nmap_scan(args.host)
+    services = nmap_scan(args.host)
     for service in services:
         handle(args.host, service)
 
