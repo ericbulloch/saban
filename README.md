@@ -18,8 +18,4 @@ To run the script, I provide the ip address of the capture the flag machine and 
 
 If I wanted that machine to use the host name saban.thm, I would run the above command with the optional parameter:
 
-`python3 saban.py 10.10.1.1 -h saban.thm`
-
-or
-
 `python3 saban.py 10.10.1.1 --host saban.thm`
