@@ -35,8 +35,8 @@ def add_to_host_file(ip_address, domain_name):
     with open(file_name, 'r') as fp:
         lines = [l.strip() for l in fp.readlines()]
     ipv4_max_length = 15    # 4 octets of 3 character and 3 periods between
-    minimal_space = 3    # I like having at least 3 spaces between the ip address and domain name
-    spacing = minimal_space + (ipv4_max_length - len(ip_address))
+    minimal_gap = 3    # I like having at least 3 spaces between the ip address and domain name
+    spacing = minimal_gap + (ipv4_max_length - len(ip_address))
     expected_line = f'{ip_address}{" " * spacing}{domain_name}'
     if expected_line in lines:
         print(f'"{expected_line}" is already in {file_name} file')
