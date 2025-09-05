@@ -129,7 +129,7 @@ def website_handler(host, service):
     port = service.get('port')
     base_url = f'{protocol}://{host}:{port}'
     print(f'Running directory enumeration on {base_url}')
-    command = f'ffuf -u {base_url}/FUZZ -w /usr/share/wordlists/dirbuster/directory-list-lowercase-2.3-medium.txt -r -e .txt,.zip,.py,.php -D'
+    command = f'gobuster dir -u {base_url} -w /usr/share/wordlists/dirbuster/directory-list-lowercase-2.3-medium.txt -x txt,zip,php'
     call(command, shell=True)
     with open('bad_subdomains.txt', 'w') as fp:
         for subdomain in ['SHOULD_NOT_EXIST_SUBDOMAIN']:
