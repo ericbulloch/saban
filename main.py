@@ -6,6 +6,7 @@ import subprocess
 from subprocess import call
 from xml.etree import ElementTree
 
+from bs4 import BeautifulSoup, Comment
 import paramiko
 import requests
 
@@ -151,6 +152,11 @@ def website_handler(host, service):
     print(f'Running directory enumeration on {base_url}')
     command = f'gobuster dir -u {base_url} -w /usr/share/wordlists/dirbuster/directory-list-lowercase-2.3-medium.txt -x txt,zip,php'
     call(command, shell=True)
+    response = requests.get(base_url)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    for element in soup.find_all(string=True):
+        if isinstance(element, Comment):
+            print(f'Comment: {element}')
 
 
 def unhandled_service(host, service):
