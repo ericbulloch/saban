@@ -104,7 +104,9 @@ def nfs_handler(host, service):
 
 
 def smb_handler(host, service):
-    pass
+    port = service.get('port')
+    command = ['smbmap', '-H' host]
+    output = subprocess.check_output(command)
 
 
 def ssh_handler(host, service):
