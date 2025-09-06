@@ -151,17 +151,6 @@ def website_handler(host, service):
     print(f'Running directory enumeration on {base_url}')
     command = f'gobuster dir -u {base_url} -w /usr/share/wordlists/dirbuster/directory-list-lowercase-2.3-medium.txt -x txt,zip,php'
     call(command, shell=True)
-    with open('bad_subdomains.txt', 'w') as fp:
-        for subdomain in ['SHOULD_NOT_EXIST_SUBDOMAIN']:
-            fp.write(f'{subdomain}\n')
-    command = ['ffuf', '-H', f"Host: FUZZ.{host}", '-H', "User-Agent: PENTEST", '-w', 'bad_subdomains.txt', '-u', base_url]
-    output = subprocess.check_output(command)
-    regex = r"^.+ Size: (\d+)"
-    match = re.match(regex, output.decode())
-    if match:
-        size = match.groups()[0]
-        command = f'ffuf -H "Host: FUZZ.{host}" -H "User-Agent: PENTEST" -w /usr/share/wordlists/SecLists/Discovery/Web-Content/raft-large-directories-lowercase.txt -u {base_url} -fs {size}'
-        call(command, shell=True)
 
 
 def unhandled_service(host, service):
