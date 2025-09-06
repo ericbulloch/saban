@@ -120,6 +120,10 @@ def smb_handler(host, service):
             length = len(parts[0]) + len(parts[1])
             if parts[0] + parts[1] == '-' * length:
                 found = True
+    if disks:
+        print('Found the following SMB disks:')
+        for disk in disks:
+            print(f'  - {disk}'
 
 
 def ssh_handler(host, service):
