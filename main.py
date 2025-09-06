@@ -107,6 +107,7 @@ def smb_handler(host, service):
     port = service.get('port')
     command = ['smbmap', '-H' host]
     output = subprocess.check_output(command)
+    lines = output.decode().split('\n')
 
 
 def ssh_handler(host, service):
