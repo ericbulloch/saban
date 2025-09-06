@@ -108,6 +108,18 @@ def smb_handler(host, service):
     command = ['smbmap', '-H' host]
     output = subprocess.check_output(command)
     lines = output.decode().split('\n')
+    found = False
+    disks = []
+    for line in lines:
+        line = line.strip()
+        parts = [l for l in line.split(' ') if l]
+        if found:
+            if parts[1] == 'READ ONLY':
+                disks.append(parts[0])
+        else:
+            length = len(parts[0]) + len(parts[1])
+            if parts[0] + parts[1] == '-' * length:
+                found = True
 
 
 def ssh_handler(host, service):
