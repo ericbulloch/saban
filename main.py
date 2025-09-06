@@ -123,7 +123,8 @@ def smb_handler(host, service):
     if disks:
         print('Found the following SMB disks:')
         for disk in disks:
-            print(f'  - {disk}'
+            print(f'{disk}, connect with the following command:')
+            print(f'smbclient //{host}/{disk}/ -n \n')
 
 
 def ssh_handler(host, service):
