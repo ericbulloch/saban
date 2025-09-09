@@ -187,6 +187,7 @@ def main(args):
     add_to_host_file(args.ip_address, args.host)
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
+        # doesn't even need to connect, just picks the right interface
         attack_machine_ip_address = 
     finally:
         s.close()
