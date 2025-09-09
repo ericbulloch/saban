@@ -185,6 +185,7 @@ def handle(host, service):
 def main(args):
     check_effective_user()
     add_to_host_file(args.ip_address, args.host)
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     attack_machine_ip_address = 
     services = nmap_scan(args.host)
     for service in services:
