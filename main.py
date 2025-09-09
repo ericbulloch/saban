@@ -188,7 +188,8 @@ def main(args):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         # doesn't even need to connect, just picks the right interface
-        attack_machine_ip_address = 
+        s.connect(("8.8.8.8", 80))
+        attack_machine_ip_address = s.getsockname()[0]
     finally:
         s.close()
     services = nmap_scan(args.host)
