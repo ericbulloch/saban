@@ -2,6 +2,7 @@ import argparse
 from ftplib import FTP
 import os
 import re
+import socket
 import subprocess
 from subprocess import call
 from xml.etree import ElementTree
@@ -184,6 +185,7 @@ def handle(host, service):
 def main(args):
     check_effective_user()
     add_to_host_file(args.ip_address, args.host)
+    attack_machine_ip_address = 
     services = nmap_scan(args.host)
     for service in services:
         handle(args.host, service)
