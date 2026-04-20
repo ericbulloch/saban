@@ -165,3 +165,30 @@ def view_run_history(kb: KnowledgeBase, limit: Optional[int] = 50, pause: Option
         print(f'  #{r.id} {r.status:<9} {r.template}{parent} params={json.dumps(r.params)}')
     if pause:
         input('\n(enter to continue)')
+
+
+def view_run_outputs(kb: KnowledgeBase) -> None:
+    view_run_history(kb, limit=50, pause=False)
+    rid = input('Run id: ').strip()
+    if not rid.isdigit():
+        return
+    run_id = int(rid)
+
+    artifacts = kb.list_artifacts(run_id)
+    if not artifacts:
+        print('No artifacts for this run.')
+        return
+
+    print('\nArtifacts:')
+    for i, a in enumerate(artifacts, start=1):
+        print(f'  [{i}] {a["kind"]} ({a["bytes"]} bytes) -> {a["path"]}')
+    sel = input('Select artifact: ').strip()
+    if not sel.isdigit():
+        return
+
+    idx = int(sel) - 1
+    if idx < 0 or idx >= len(artifacts):
+        return
+
+    content = kb.read_artifact_text(artifacts[idx]["path"])
+    show_in_pager(content)
