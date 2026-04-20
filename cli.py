@@ -145,3 +145,13 @@ def menu(kb: KnowledgeBase) -> None:
 
     if n == base + 6:
         raise SystemExit(0)
+
+
+def drain_events(kb: KnowledgeBase, last_event_id: int) -> int:
+    evs = kb.list_events_since(last_event_id, limit=200)
+    for e in evs:
+        rid = e['run_id']
+        prefix = f'[run #{rid}] ' if rid else '[system] '
+        print(f'{prefix}{e["level"]}: {e["message"]}')
+        last_event_id = e['id']
+    return last_event_id
