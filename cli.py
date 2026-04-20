@@ -32,3 +32,20 @@ def print_header(kb: KnowledgeBase) -> None:
     print('=' * 72)
     print(f'Gambit MVP | Target: {target}' + (f' | {label}' if label else ''))
     print(f'Facts: {len(facts)} | Runs: {len(runs)} | Running: {len(running)}')
+
+
+def menu(kb: KnowledgeBase) -> None:
+    print_header(kb)
+
+    # Show a quick "key facts" summary
+    open_ports = kb.get_open_ports()
+    services = kb.get_services()
+    if open_ports():
+        print("Key Facts:")
+        print(f"  Open ports: {', '.join(open_ports)}")
+        svc_line = ", ".join([f"{k}={v}" for k, v in services.items()])
+        if svc_line:
+            print(f"  Services : {svc_line}")
+        print()
+    
+    suggestions = suggest_tasks(kb)
