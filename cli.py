@@ -155,3 +155,13 @@ def drain_events(kb: KnowledgeBase, last_event_id: int) -> int:
         print(f'{prefix}{e["level"]}: {e["message"]}')
         last_event_id = e['id']
     return last_event_id
+
+
+def view_run_history(kb: KnowledgeBase, limit: Optional[int] = 50, pause: Optional[bool] = True) -> None:
+    runs = kb.list_runs(limit=limit)
+    print('\nRun history (lastest first):')
+    for r in runs:
+        parent = f' parent={r.parent_run_id}' if r.parent_run_id else ''
+        print(f'  #{r.id} {r.status:<9} {r.template}{parent} params={json.dumps(r.params)}')
+    if pause:
+        input('\n(enter to continue)')
