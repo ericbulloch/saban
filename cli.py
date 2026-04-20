@@ -49,3 +49,12 @@ def menu(kb: KnowledgeBase) -> None:
         print()
     
     suggestions = suggest_tasks(kb)
+    
+    print("Suggested Tasks (from rules):")
+    if not suggestions:
+        print("  (none) - try Custom actions below or add more rules.")
+    else:
+        for i, s in enumerate(suggestions, start=1):
+            print(f"  [{i}] {s.title}")
+            print(f"      - Why: {s.reason}")
+            print(f"      - Params: {json.dumps(s.params)}")
