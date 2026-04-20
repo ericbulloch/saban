@@ -192,3 +192,37 @@ def view_run_outputs(kb: KnowledgeBase) -> None:
 
     content = kb.read_artifact_text(artifacts[idx]["path"])
     show_in_pager(content)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--workspace', required=True, help='workspace directory')
+    ap.add_argument('--target', required=True, help='target ip/hostname')
+    ap.add_argument('--label', default=None, help='optional label')
+    args = ap.parse_args()
+
+    kb = KnowledgeBase(args.workspace)
+    kb.ensure_session(args.target, args.label)
+    kb.seed_templates(TEMPLATES)
+    
+    engine = Engine(kb)
+    engine.register('discovery.mock_scan', mock_discovery_scan)
+    engine.register('discovery.mock_targeted', mock_targeted_scan)
+    engine.register('enum.ftp.anon', mock_ftp_anon_check)
+    engine.register('enum.ftp.list', mock_ftp_list_files)
+    engine.register('enum.http.title', mock_http_title)
+    engine.register('enum.http.directories', mock_http_directories)
+    engine.start()
+    
+    last_event_id = 0
+    kb.add_event(None, 'info', 'CLI started')
+    try:
+        while True:
+            last_event_id = drain_events(kb, last_event_id)
+            menu(kb)
+    finally:
+        engine.stop()
+
+
+if __name__ == '__main__':
+    main()
