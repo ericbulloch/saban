@@ -82,7 +82,7 @@ def menu(kb: KnowledgeBase) -> None:
         print(f'Queued run #{run_id}: {sel.template}')
         return
 
-    #Always available actions
+    # Always available actions
     if n == base + 1:
         facts = kb.list_facts()
         print("\nFacts")
