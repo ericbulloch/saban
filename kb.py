@@ -266,7 +266,7 @@ class KnowledgeBase:
                 FROM task_runs tr
                 JOIN task_templates tt ON tt.id = tr.template_id
                 WHERE tr.id=?
-                """
+                """,
                 (run_id,),
             ).fetchone()
             if row is None:
@@ -283,3 +283,34 @@ class KnowledgeBase:
                 exit_code=row['exit_code'],
                 error_summary=row['error_summary'],
             )
+
+    def list_runs(self, limit: int = 50) -> List[RunRow]:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT tr.id, tt.name as template, tr.status, tr.created_at, tr.started_at, tr.finished_at,
+                       tr.parent_run_id, tr.params_json, tr.exit_code, tr.error_summary
+                FROM task_runs tr
+                JOIN task_templates tt ON tt.id = tr.template_id
+                ORDER BY tr.id DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+            out: List[RowRun] = []
+            for r in rows:
+                out.append(
+                    RunRow(
+                        id=int(row['id']),
+                        template=row['template'],
+                        status=row['status'],
+                        created_at=row['created_at'],
+                        started_at=row['started_at'],
+                        finished_at=row['finished_at'],
+                        parent_run_id=row['parent_run_id'],
+                        params=json.loads(row['params_json']),
+                        exit_code=row['exit_code'],
+                        error_summary=row['error_summary'],
+                    )
+                )
+            return out
