@@ -81,5 +81,46 @@ class KnowledgeBase:
                     exit_code INTEGER,
                     error_summary TEXT
                 );
+
+                CREATE INDEX IF NOT EXISTS idx_task_runs_status ON task_runs(status);
+                CREATE INDEX IF NOT EXISTS idx_task_runs_created ON task_runs(created_at);
+
+                CREATE TABLE IF NOT EXISTS artifacts (
+                    id INETEGER PRIMARY KEY,
+                    run_id INTEGER NOT NULL REFERENCES task_runs(id) ON DELETE CASCADE,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    kind TEXT NOT NULL, -- stdout|stderr|report|log|note|etc.
+                    path TEXT NOT NULL, -- relative to workspace
+                    bytes INTEGER,
+                    mime TEXT
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_artifacts_run ON artifacts(run_id);
+
+                CREATE TABLE IF NOT EXISTS facts (
+                    id INTEGER PRIMARY KEY,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    run_id INTEGER REFERENCES task_runs(id) ON DELETE SET NULL,
+                    fact_type TEXT NOT NULL, -- open_port|service|done|ftp|http|note
+                    key TEXT NOT NULL, -- tcp/21, tcp/21.auth.anon, etc.
+                    value TEXT,
+                    confidence REAL NOT NULL DEFAULT 1.0,
+                    UNIQUE(fact_type, key, value)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_facts_type ON facts(fact_type);
+                CREATE INDEX IF NOT EXISTS idx_facts_key ON facts(key);
+
+                CREATE TABLE IF NOT EXISTS events (
+                    id INTEGER PRIMARY KEY,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    run_id INTEGER REFERENCES task_runs(id) ON DELETE CASCADE,
+                    level TEXT NOT NULL, -- info|warn|error
+                    message TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_events_run ON events(run_id);
+                CREATE INDEX IF NOT EXISTS idx_events_created ON events(created_at);
                 """
             )
+            conn.commit()
