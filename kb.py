@@ -148,4 +148,82 @@ class KnowledgeBase:
             return (row['target'], row['label'])
 
     def seed_templates(self, templates: List[Dict[str, str]]) -> None:
-        pass
+        with self._connect() as conn:
+            for t in templates:
+                conn.execute(
+                    """
+                    INSERT OR IGNORE INTO task_templates (name, description, category, enabled)
+                    VALUES (?, ?, ?, 1)
+                    """,
+                    (t['name'], t['description'], t['category']),
+                )
+            conn.commit()
+
+    def list_templates(self) -> List[Dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT id, name, description, category, enabled FROM task_templates WHERE enabled=1"
+            ).featchall()
+            return [dict(r) for r in rows]
+
+    def _template_id(self, template_name: str) -> int:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT id FROM task_templates WHERE name=? and enabled=1", (template_name,)
+            ).fetchone()
+            if row is None:
+                raise ValueError(f'Unknown or disabled template: {template_name}')
+            return int(row['id'])
+
+    def create_run(
+        self,
+        template_name: str,
+        params: Dict[str, Any],
+        requested_by: str='cli',
+        parent_run_id: Optional[int] = None,
+        command_preview: Optional[str] = None,
+    ) -> int:
+        template_id = self._template_id(template_name)
+        with self._connect() as conn:
+            cur = conn.execute(
+                """
+                INSERT INTO task_runs
+                (template_id, status, requested_by, parent_run_id, params_json, command_preview)
+                VALUES (?, 'PENDING', ?, ?, ?, ?)
+                """,
+                (template_id, requested_by, parent_run_id, json.dumps(params), command_preview),
+            )
+            conn.commit()
+            return int(cur.lastrowid)
+
+    def get_new_pending_run(self) -> Optional[int]:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT id FROM task_runs
+                WHERE status='PENDING'
+                ORDER BY created_at ASC, id ASC
+                LIMIT 1
+                """
+            ).fetchone()
+            return int(row['id']) if row else None
+
+    def any_running(self) -> bool:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT 1 FROM task_runs WHERE status='RUNNING' LIMIT1"
+            ).fetchone()
+            return row is not None
+
+    def claim_run(self, run_id: int) -> bool:
+        with self._connect() as conn:
+            cur = conn.execute(
+                """
+                UPDATE task_runs
+                SET status='RUNNING', started_at=datetime('now')
+                WHERE id=? AND status='PENDING'
+                """,
+                (run_id,),
+            )
+            conn.commit()
+            return cur.rowcount == 1
