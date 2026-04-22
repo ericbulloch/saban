@@ -124,3 +124,28 @@ class KnowledgeBase:
                 """
             )
             conn.commit()
+
+    def ensure_session(self, target: str, label: Optional[str] = None) -> None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT id FROM session WHERE id=1").fetchone()
+            if row is None:
+                conn.execute(
+                    "INSERT INTO session (id, target, label) VALUES (1, ? ?)",
+                    (target, label),
+                )
+            else:
+                conn.execute(
+                    "UPDATE session SET target=?, label=? WHERE id=1",
+                    (target, label),
+                )
+            conn.commit()
+
+    def get_session(self) -> Tuple[str, Optional[str]]:
+        with self._connect() as conn:
+            row = conn.execute("SELECT target, label FROM session WHERE id=1").fetchone()
+            if row is None:
+                return ('', None)
+            return (row['target'], row['label'])
+
+    def seed_templates(self, templates: List[Dict[str, str]]) -> None:
+        pass
