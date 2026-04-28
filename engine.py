@@ -107,3 +107,31 @@ class Engine:
             except Exception as e:
                 self.kb.add_event(None, 'error', f'Engine error: {type(e).__name__}: {e}')
                 time.sleep(self.poll_interval)
+
+
+# Handlers
+def mock_discovery_scan(kb: KnowledgeBase, run: RunRow) -> TaskResult:
+    target, _ = kb.get_session()
+    with open('nmap.txt', 'r') as fp:
+        output = fp.read()
+    with open('nmap.xml', 'r') as fp:
+        xml_content = fp.read()
+    nmap_scan_data = parse_nmap_xml('nmap.xml')
+    facts = []
+    for port in nmap_scan_data[0]['ports']:
+        if port['state'] == 'open':
+            proto = port['proto']
+            port_num = port['port']
+            service_name = port['service']['name'] if port['service'] else None
+            facts.append({'fact_type': 'open_port', 'key': f'{proto}/{port_num}', 'value': 'open', 'confidence': 1.0})
+            if service_name:
+                facts.append({'fact_type': 'service', 'key': f'{proto}/{port_num}', 'value': service_name, 'confidence': 1.0})
+
+    return TaskResult(
+        ok=True,
+        exit_code=0,
+        summary='mock discovery complete',
+        artifacts={'stdout': output, 'xml': xml_content},
+        facts=facts,
+        done_key='discovery.mock_scan',
+    )
