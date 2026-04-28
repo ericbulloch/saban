@@ -32,3 +32,78 @@ class Engine:
         self.handlers: Dict[str, TaskHandler] = {}
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
+
+    def register(self, template_name: str, handler: TaskHandler) -> None:
+        self.handlers[template_name] = handler
+
+    def start(self) -> None:
+        if self._thread and self._thread.is_alive():
+            return
+        self._stop.clear()
+        self._thread = threading.Thread(target=self._loop, name='engine-worker', daemon=True)
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._stop.set()
+        if self._thread:
+            self._thread.join(timeout=2)
+
+    def _loop(self) -> None:
+        while not self._stop.is_set():
+            try:
+                if self.kb.any_running():
+                    time.sleep(self.poll_interval)
+                    continue
+
+                run_id = self.kb.get_next_pending_run()
+                if run_id is None:
+                    time.sleep(self.poll_interval)
+                    continue
+
+                if not self.kb.claim_run(run_id):
+                    time.sleep(self.poll_interval)
+                    continue
+
+                run = self.kb.get_run(run_id)
+                self.kb.add_event(run_id, 'info', f'Started {run.template} (run #{run_id})')
+
+                handler = self.handlers.get(run.template)
+                if handler is None:
+                    self.kb.add_event(run_id, 'error', f'No handler registered for template: {run.template}')
+                    self.kb.set_run_status(run_id, 'FAILED', exit_code=127, error_summary='No handler', finished=True)
+                    continue
+
+                result = handler(self.kb, run)
+
+                for kind, content in result.artifacts.items():
+                    filename = f'{kind}.text'
+                    rel = self.kb.write_artifact_text(run_id, kind=kind, text=content, filename=filename)
+                    self.kb.add_event(run_id, 'info', f'Artifact saved: {rel}')
+
+                self.kb.set_run_status(run_id, 'PARSING')
+                if result.facts:
+                    self.kb.insert_facts(run_id, results.facts)
+                    self.kb.add_event(run_id, 'info', f'Facts inserted: {len(result.facts)}')
+
+                if result.done_key:
+                    self.kb.insert_facts(run_id, [{
+                        'fact_type': 'done',
+                        'key': result.done.key,
+                        'value': 'true',
+                        'confidence': 1.0
+                    }])
+
+                final_status = 'SUCCEEDED' if result.ok else 'FAILED'
+                self.kb.set_run_status(
+                    run_id,
+                    final_status,
+                    exit_code=result.exit_code,
+                    error_summary=None if result.ok else result.summary,
+                    finished=True
+                )
+                self.kb.set_run_status(run_id, 'INDEXED')
+                self.kb.add_event(run_id, 'info', f'Finished run #{run_id}: {final_status} ({result.summary})')
+
+            except Exception as e:
+                self.kb.add_event(None, 'error', f'Engine error: {type(e).__name__}: {e}')
+                time.sleep(self.poll_interval)
