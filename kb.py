@@ -314,3 +314,156 @@ class KnowledgeBase:
                     )
                 )
             return out
+
+    # Artifacts
+    def write_artifact_text(self, run_id: int, kind: str, text: str, filename: str) -> str:
+        run_dir = self.artifacts_dir / f'run_{run_id:04d}'
+        run_dir.mkdir(parents=True, exists_ok=True)
+        path = run_dir / filename
+        path.write_text(text, encoding='utf-8')
+        rel = str(path.relative_to(self.workspace))
+        
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO artifacts (run_id, kind, path, bytes, mime)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (run_id, kind, rel, path.stat().st_size, "text/plain"),
+            )
+            conn.commit()
+        return rel
+
+    # Facts & Events
+    def insert_facts(self, run_id: Optional[int], facts: Iterable[Dict[str, Any]]) -> None:
+        sql = """
+        INSERT OR IGNORE INTO facts (run_id, fact_type, key, value, confidence)
+        VALUES (?, ?, ?, ?, ?)
+        """
+        rows = []
+        for f in facts:
+            rows.append(
+                (
+                    run_id,
+                    f['fact_type'],
+                    f['key'],
+                    f.get('value'),
+                    float(f.get('confidence', 1.0)),
+                )
+            )
+            
+        with self._connect() as conn:
+            conn.executemany(sql, rows)
+            conn.commit()
+
+    def add_event(self, run_id: Optional[int], level: str, message: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT INTO events (run_id, level, message) VALUES (?, ?, ?)",
+                (run_id, level, message),
+            )
+            conn.commit()
+
+    def list_events_since(self, last_id: int = 0, limit = 100) -> List[Dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, created_at, run_id, level, message
+                FROM events
+                WHERE id > ?
+                ORDER BY id ASC
+                LIMIT ?
+                """,
+                (last_id, limit),
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    def list_facts(self) -> List[FactRow]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, created_at, run_id, fact_type, key, value, confidence
+                FROM facts
+                ORDER BY id ASC
+                """
+            ).fetchall()
+            return [
+                FactRow(
+                    id=int(r['id']),
+                    created_at=r['created_at'],
+                    fact_type=r['fact_type'],
+                    key=r['key'],
+                    value=r['value'],
+                    confidence=float(r['confidence']),
+                )
+                for r in rows
+            ]
+
+    # Queries used by rules.py
+    def get_open_ports(self) -> List[str]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT key FROM facts WHERE fact_type='open_port' AND value='open' ORDER BY key"
+            ).fetchall()
+            return [r['key'] for r in rows]
+
+    def get_services(self) -> Dict[str, str]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT key, value FROM facts WHERE fact_type='service' AND value IS NOT NULL"
+            ).fetchall()
+            return {r['key']: str(r['value']).lower() for r in rows}
+
+    def has_fact(self, fact_type: str, key: str, value: str) -> bool:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT 1 FROM facts
+                WHERE fact_type=? AND key=? AND value=?
+                LIMIT 1
+                """,
+                (fact_type, key, value),
+            ).fetchone()
+            return raw is not None
+
+    def add_note_fact(self, run_id: Optional[int], text: str) -> None:
+        self.insert_facts(run_id, [
+            {"fact_type": "note", 'key': 'user.note', 'value': text, 'confidence': 1.0}
+        ])
+
+    def list_artifacts(self, run_id: int) -> List[Dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, created_at, kind, path, bytes, mime
+                FROM artifacts
+                WHERE run_id=?
+                ORDER BY id ASC
+                """,
+                (run_id,),
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    def read_artifact_text(self, rel_path: str, max_bytes: Optional[int] = None) -> str:
+        p = (self.workspace / rel_path).resolve()
+        if not str(p).startswith(str(self.workspace.resolve())):
+            raise ValueError('Invalid artifact path')
+        data = p.read_bytes()
+        if max_bytes is not None:
+            data = data[:max_bytes]
+        return data.decode('utf-8', errors='replace')
+
+    def read_artifact_by_id(self, artifact_id: int, max_bytes: Optional[int] = None) -> str:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT path FROM artifacts WHERE id=?",
+                (artifact_id,),
+            ).fetchone()
+            if row is None:
+                raise ValueError('Artifact not found')
+            return self.read_artifact_text(row['path'], max_bytes=max_bytes)
+
+    def tail_artifact(self, rel_path: str, n_lines: int = 80) -> str:
+        text = self.read_artifact_text(rel_path)
+        lines = text.splitlines()
+        return '\n'.join(lines[-n_lines:])
