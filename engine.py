@@ -135,3 +135,161 @@ def mock_discovery_scan(kb: KnowledgeBase, run: RunRow) -> TaskResult:
         facts=facts,
         done_key='discovery.mock_scan',
     )
+
+
+def mock_targeted_scan(kb: KnowledgeBase, run: RunRow) -> TaskResult:
+    ports = run.params.get('ports', [])
+    output = '[mock-targeted] details:\n'
+    facts: List[Dict[str, Any]] = []
+
+    for p in ports:
+        output += f'  {p}: service detail ok\n'
+
+    if 'tcp/80' in ports:
+        facts.append({'fact_type': 'http', 'key': f'tcp/80.title', 'value': 'Welcome', 'confidence': 0.8})
+    return TaskResult(
+        ok=True,
+        exit_code=0,
+        summary='mock targeted scan complete',
+        artifacts={'stdout': output},
+        facts=facts,
+        done_key='discovery.mock_targeted',
+    )
+
+
+def mock_ftp_anon_check(kb: KnowledgeBase, run: RunRow) -> TaskResult:
+    ports = run.params['port']
+    allow = run.params.get('allow', True)
+    status = 'allowed' if allow else 'denied'
+    output = f'[mock-ftp-{port}] anonymous login {status}\n'
+    facts: [
+        {'fact_type': 'ftp', 'key': f'tcp/{port}.auth.anon', 'value': status, 'confidence': 1.0}
+    ]
+    return TaskResult(
+        ok=True,
+        exit_code=0,
+        summary=f'anon {status}',
+        artifacts={'stdout': output},
+        facts=facts,
+        done_key=f'enum.ftp.{port}.anon',
+    )
+
+
+def mock_http_title(kb: KnowledgeBase, run: RunRow) -> TaskResult:
+    ports = run.params['port']
+    allow = run.params.get('path', '/')
+    title = 'Welcome' if port == 80 else 'Developer Site'
+    status = 'allowed' if allow else 'denied'
+    output = f"[mock-http-{port}] GET {path} -> title='{title}'\n"
+    facts: [
+        {'fact_type': 'http', 'key': f'tcp/{port}.title', 'value': title, 'confidence': 0.9}
+    ]
+    return TaskResult(
+        ok=True,
+        exit_code=0,
+        summary='title fetched',
+        artifacts={'stdout': output},
+        facts=facts,
+        done_key=f'enum.http.{port}.title',
+    )
+
+
+def mock_ftp_list_files(kb: KnowledgeBase, run: RunRow) -> TaskResult:
+    ports = run.params['port']
+    output = f'[mock-ftp-{port}] LIST\n  flag.txt\n  readme.md\n'
+    facts: [
+        {'fact_type': 'ftp', 'key': f'tcp/{port}.anon.files', 'value': 'flag.txt,readme.md', 'confidence': 0.8}
+    ]
+    return TaskResult(
+        ok=True,
+        exit_code=0,
+        summary='listed files',
+        artifacts={'stdout': output},
+        facts=facts,
+        done_key=f'enum.ftp.{port}.list',
+    )
+
+
+def mock_http_directories(kb: KnowledgeBase, run: RunRow) -> TaskResult:
+    ports = run.params['port']
+    output = f"[mock-http-{port}] Directories\n  /admin\n  /images\n  /js\n  /css\n  /dev\n  /contact-us"
+    facts: [
+        {'fact_type': 'http', 'key': f'tcp/{port}.directories', 'value': 'admin,images,js,css,dev,contact-us', 'confidence': 0.8}
+    ]
+    return TaskResult(
+        ok=True,
+        exit_code=0,
+        summary='directories',
+        artifacts={'stdout': output},
+        facts=facts,
+        done_key=f'enum.http.{port}.directories',
+    )
+
+
+#Parsers
+def parse_nmap_xml(xml_path: str) -> List[Dict[str, Any]]:
+    tree = ET.parse(xml_path)
+    root = tree.getroot()
+    hosts_out: List[Dict[str, Any]] = []
+    for host in root.findall('host'):
+        status_el = host.find('status')
+        status = status_el.get('state') if status_el is not None else None
+        addresses = []
+        for addr_el in host.findall('address'):
+            addresses.append({
+                'addr': addr_el.get('addr'),
+                'addrtype': addr_el.get('addrtype'),
+            })
+        hostnames = []
+        hostnames_el = host.find('hostnames')
+        if hostnames_el is not None:
+            for h in hostnames_el.findall('hostname'):
+                name = h.get('name')
+                if name:
+                    hostnames.append(name)
+        ports_out: List[Dict[str, Any]] = []
+        ports_el = host.find('ports')
+        if ports_el is not None:
+            for port_el in ports_el.findall('port'):
+                protocol = port_el.get('protocol')
+                port_id = port_el.get('portid')
+                try:
+                    port_number = int(port_id) if port_id is not None else None
+                except ValueError:
+                    port_number = None
+                state_el = port_el.find('state')
+                state = state_el.get('state') if state_el is not None else None
+                reason = state_el.get('reason') if state_el is not None else None
+                service_el = port_el.find('service')
+                service = {
+                    'name': service_el.get('name') if service_el is not None else None,
+                    'product': service_el.get('product') if service_el is not None else None,
+
+                    'version': service_el.get('version') if service_el is not None else None,
+                    'extra_info': service_el.get('extrainfo') if service_el is not None else None,
+                    'tunnel': service_el.get('tunnel') if service_el is not None else None,
+                    'os_type': service_el.get('ostype') if service_el is not None else None,
+                    'method': service_el.get('method') if service_el is not None else None,
+                    'confidence': service_el.get('conf') if service_el is not None else None,
+                }
+                scripts = []
+                for script_el in port_el.findall('script'):
+                    scripts.append({
+                        'id': script_el.get('id'),
+                        'output': script_el.get('output'),
+                    })
+                ports_out.append({
+                    'protocol': protocol,
+                    'port': port_number,
+                    'state': state,
+                    'reason': reason,
+                    'service', service,
+                    'scripts', scripts,
+                })
+        hosts_out.append({
+            'status': status,
+            'addresses': addresses,
+            'hostnames': hostnames,
+            'ports': ports_out'
+        })
+    return hosts_out
