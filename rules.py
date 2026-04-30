@@ -74,3 +74,5 @@ def suggest_tasks(kb: KnowledgeBase) -> List[Suggestion]:
                 reason=f"HTTP detected on tcp/{port} - enumerate directories (toy enum).",
                 params={'port': int(port), 'path': '/'},
             ))
+
+    return suggestions
